@@ -23,10 +23,26 @@ const leadRoutes = require("./routes/leadRoutes");
 const app = express();
 const server = http.createServer(app);
 
+// Set up CORS
+app.use(
+  cors({
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://localhost:5174",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 // Set up Socket.io
 const io = socketio(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://localhost:5174",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -59,7 +75,6 @@ io.on("connection", (socket) => {
 });
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

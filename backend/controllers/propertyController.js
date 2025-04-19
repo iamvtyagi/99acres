@@ -18,6 +18,13 @@ exports.getProperties = async (req, res, next) => {
     // Loop over removeFields and delete them from reqQuery
     removeFields.forEach((param) => delete reqQuery[param]);
 
+    // Handle boolean values for featured
+    if (reqQuery.featured === "true") {
+      reqQuery.featured = true;
+    } else if (reqQuery.featured === "false") {
+      reqQuery.featured = false;
+    }
+
     // Create query string
     let queryStr = JSON.stringify(reqQuery);
 
@@ -26,6 +33,9 @@ exports.getProperties = async (req, res, next) => {
       /\b(gt|gte|lt|lte|in)\b/g,
       (match) => `$${match}`
     );
+
+    // Log the query for debugging
+    console.log("Query:", queryStr);
 
     // Finding resource
     let query = Property.find(JSON.parse(queryStr));

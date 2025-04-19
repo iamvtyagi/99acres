@@ -26,6 +26,38 @@ const PropertyForm = () => {
   );
   const { user } = useSelector((state) => state.auth);
 
+  // Check if user can post property
+  const canPostProperty =
+    user && ["seller", "agent", "admin"].includes(user.user.role);
+
+  useEffect(() => {
+    if (!canPostProperty) {
+      navigate("/profile");
+    }
+  }, [canPostProperty, navigate]);
+
+  if (!canPostProperty) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50 py-12 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Permission Denied
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You need to be a seller or agent to post properties. Please update
+            your role in your profile.
+          </p>
+          <button
+            onClick={() => navigate("/profile")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+          >
+            Go to Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Validation schema
   const validationSchema = Yup.object({
     title: Yup.string()
@@ -238,24 +270,6 @@ const PropertyForm = () => {
   const removeImage = (index) => {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
   };
-
-  // Check if user is authorized to create/edit properties
-  if (!user || !["seller", "agent", "admin"].includes(user.user.role)) {
-    return (
-      <div className="min-h-screen flex flex-col justify-center items-center p-4">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Unauthorized</h1>
-        <p className="text-gray-600 mb-6">
-          You must be a seller, agent, or admin to post or edit properties.
-        </p>
-        <button
-          onClick={() => navigate("/login")}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
-        >
-          Login
-        </button>
-      </div>
-    );
-  }
 
   // Check if property exists when editing
   if (isEdit && isLoading) {
@@ -719,7 +733,7 @@ const PropertyForm = () => {
                         >
                           <path
                             fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                             clipRule="evenodd"
                           />
                         </svg>

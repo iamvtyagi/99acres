@@ -19,9 +19,83 @@ export const register = createAsyncThunk(
   "auth/register",
   async (userData, thunkAPI) => {
     try {
-      const response = await axios.post(`${API_URL}/register`, userData);
-      return response.data;
+      console.log("Registering user with data:", {
+        ...userData,
+        password: "[REDACTED]",
+      });
+      console.log("API URL:", `${API_URL}/register`);
+
+      // Validate required fields
+      const requiredFields = [
+        "name",
+        "username",
+        "email",
+        "mobile",
+        "password",
+      ];
+      for (const field of requiredFields) {
+        if (!userData[field]) {
+          return thunkAPI.rejectWithValue(`${field} is required`);
+        }
+      }
+
+      // Add a timeout to the axios request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+
+      try {
+        const response = await axios.post(`${API_URL}/register`, userData, {
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        clearTimeout(timeoutId);
+        console.log("Register response:", response.data);
+
+        // If registration is successful and we get a token back, store it
+        if (response.data && response.data.success && response.data.token) {
+          localStorage.setItem("user", JSON.stringify(response.data));
+        }
+
+        return response.data;
+      } catch (axiosError) {
+        clearTimeout(timeoutId);
+        throw axiosError; // Re-throw to be caught by the outer catch
+      }
     } catch (error) {
+      console.error("Register error:", error);
+
+      // Handle abort error (timeout)
+      if (error.name === "AbortError" || error.code === "ECONNABORTED") {
+        return thunkAPI.rejectWithValue("Request timed out. Please try again.");
+      }
+
+      // Handle duplicate key errors
+      if (
+        error.response &&
+        error.response.status === 400 &&
+        error.response.data.message &&
+        (error.response.data.message.includes("already registered") ||
+          error.response.data.message.includes("already taken"))
+      ) {
+        return thunkAPI.rejectWithValue(error.response.data.message);
+      }
+
+      // Handle validation errors
+      if (error.response && error.response.status === 400) {
+        return thunkAPI.rejectWithValue(
+          error.response.data.message || "Validation error"
+        );
+      }
+
+      // Handle server connection errors
+      if (error.code === "ECONNREFUSED" || error.code === "ERR_NETWORK") {
+        return thunkAPI.rejectWithValue(
+          "Server is not responding. Please try again later."
+        );
+      }
+
       const message =
         (error.response &&
           error.response.data &&
@@ -38,14 +112,70 @@ export const login = createAsyncThunk(
   "auth/login",
   async (userData, thunkAPI) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, userData);
+      console.log("Logging in user with data:", {
+        ...userData,
+        password: "[REDACTED]",
+      });
+      console.log("API URL:", `${API_URL}/login`);
 
-      if (response.data) {
-        localStorage.setItem("user", JSON.stringify(response.data));
+      // Make sure we have the required fields
+      if (!userData.email || !userData.password) {
+        return thunkAPI.rejectWithValue(
+          "Please provide email/username and password"
+        );
       }
 
-      return response.data;
+      // Add a timeout to the axios request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+
+      try {
+        const response = await axios.post(`${API_URL}/login`, userData, {
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        clearTimeout(timeoutId);
+        console.log("Login response:", response.data);
+
+        if (response.data && response.data.success) {
+          // Store user data in localStorage
+          localStorage.setItem("user", JSON.stringify(response.data));
+          return response.data;
+        } else {
+          // Handle unexpected response format
+          return thunkAPI.rejectWithValue("Invalid response from server");
+        }
+      } catch (axiosError) {
+        clearTimeout(timeoutId);
+        throw axiosError; // Re-throw to be caught by the outer catch
+      }
     } catch (error) {
+      console.error("Login error:", error);
+
+      // Handle abort error (timeout)
+      if (error.name === "AbortError" || error.code === "ECONNABORTED") {
+        return thunkAPI.rejectWithValue("Request timed out. Please try again.");
+      }
+
+      // Handle different error scenarios
+      if (error.response && error.response.status === 401) {
+        return thunkAPI.rejectWithValue("Invalid credentials");
+      }
+
+      if (error.response && error.response.status === 400) {
+        return thunkAPI.rejectWithValue(
+          error.response.data.message || "Bad request"
+        );
+      }
+
+      if (error.code === "ECONNREFUSED" || error.code === "ERR_NETWORK") {
+        return thunkAPI.rejectWithValue(
+          "Server is not responding. Please try again later."
+        );
+      }
+
       const message =
         (error.response &&
           error.response.data &&

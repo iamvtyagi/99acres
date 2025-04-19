@@ -1,24 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Create an instance of axios with default config
-const axiosInstance = axios.create({
-  baseURL: 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
 });
 
-// Add a request interceptor
-axiosInstance.interceptors.request.use(
+// Request interceptor
+instance.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
-    const user = JSON.parse(localStorage.getItem('user'));
-    
-    // If token exists, add to headers
-    if (user && user.token) {
-      config.headers.Authorization = `Bearer ${user.token}`;
+    const token = JSON.parse(localStorage.getItem("user"))?.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
@@ -26,27 +19,16 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Add a response interceptor
-axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+// Response interceptor
+instance.interceptors.response.use(
+  (response) => response,
   (error) => {
-    // Handle unauthorized errors (401)
-    if (error.response && error.response.status === 401) {
-      // Check if not on login or register page
-      if (
-        !window.location.pathname.includes('/login') &&
-        !window.location.pathname.includes('/register')
-      ) {
-        // Clear localStorage and redirect to login
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
+    if (error.response?.status === 401) {
+      localStorage.removeItem("user");
+      window.location.href = "/login";
     }
-    
     return Promise.reject(error);
   }
 );
 
-export default axiosInstance;
+export default instance;

@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const {
   getProperties,
   getProperty,
@@ -6,34 +6,32 @@ const {
   updateProperty,
   deleteProperty,
   getPropertiesInRadius,
-  propertyImageUpload
-} = require('../controllers/propertyController');
+  propertyImageUpload,
+} = require("../controllers/propertyController");
 
-const { getPropertyLeads } = require('../controllers/leadController');
+const { getPropertyLeads } = require("../controllers/leadController");
 
 const router = express.Router();
 
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize } = require("../middleware/auth");
 
-router.route('/radius/:zipcode/:distance').get(getPropertiesInRadius);
+router.route("/radius/:zipcode/:distance").get(getPropertiesInRadius);
 
 router
-  .route('/')
+  .route("/")
   .get(getProperties)
-  .post(protect, authorize('seller', 'agent', 'admin'), createProperty);
+  .post(protect, authorize("seller", "agent", "admin"), createProperty);
 
 router
-  .route('/:id')
+  .route("/:id")
   .get(getProperty)
-  .put(protect, updateProperty)
-  .delete(protect, deleteProperty);
+  .put(protect, authorize("seller", "agent", "admin"), updateProperty)
+  .delete(protect, authorize("seller", "agent", "admin"), deleteProperty);
 
 router
-  .route('/:id/images')
-  .put(protect, propertyImageUpload);
+  .route("/:id/images")
+  .put(protect, authorize("seller", "agent", "admin"), propertyImageUpload);
 
-router
-  .route('/:propertyId/leads')
-  .get(protect, getPropertyLeads);
+router.route("/:propertyId/leads").get(protect, getPropertyLeads);
 
 module.exports = router;

@@ -9,11 +9,44 @@ const cloudinary = require("../utils/cloudinary");
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, mobile, role } = req.body;
+    const { name, username, email, password, mobile, role } = req.body;
+    console.log("Register request body:", {
+      ...req.body,
+      password: req.body.password ? "[REDACTED]" : undefined,
+    });
+
+    // Check if all required fields are provided
+    if (!name || !email || !password || !mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide all required fields",
+      });
+    }
+
+    // Check if user with this email already exists
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    // Check if username is provided and if it already exists
+    if (username) {
+      const usernameExists = await User.findOne({ username });
+      if (usernameExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already taken",
+        });
+      }
+    }
 
     // Create user
     const user = await User.create({
       name,
+      username,
       email,
       password,
       mobile,
@@ -112,18 +145,31 @@ exports.verifyEmail = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
   try {
+    console.log("Login request body:", {
+      ...req.body,
+      password: req.body.password ? "[REDACTED]" : undefined,
+    });
+
     const { email, password } = req.body;
 
     // Validate email & password
     if (!email || !password) {
+      console.log("Missing email or password");
       return res.status(400).json({
         success: false,
-        message: "Please provide an email and password",
+        message: "Please provide an email/username and password",
       });
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select("+password");
+    // Check for user by email
+    let user = await User.findOne({ email }).select("+password");
+    console.log("User found by email:", user ? "Yes" : "No");
+
+    // If user not found by email, try to find by username
+    if (!user) {
+      user = await User.findOne({ username: email }).select("+password");
+      console.log("User found by username:", user ? "Yes" : "No");
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -134,6 +180,7 @@ exports.login = async (req, res, next) => {
 
     // Check if password matches
     const isMatch = await user.matchPassword(password);
+    console.log("Password match:", isMatch ? "Yes" : "No");
 
     if (!isMatch) {
       return res.status(401).json({
@@ -141,6 +188,9 @@ exports.login = async (req, res, next) => {
         message: "Invalid credentials",
       });
     }
+
+    // Log successful login
+    console.log(`User ${user.email} logged in successfully`);
 
     // Check if email is verified (commented out for development)
     /*
@@ -155,6 +205,7 @@ exports.login = async (req, res, next) => {
     // Send token
     sendTokenResponse(user, 200, res);
   } catch (err) {
+    console.error("Login error:", err);
     next(err);
   }
 };
@@ -393,7 +444,6 @@ exports.logout = async (req, res, next) => {
 
 // Helper function to get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
-  // Create token
   const token = user.getSignedJwtToken();
 
   res.status(statusCode).json({
@@ -402,6 +452,7 @@ const sendTokenResponse = (user, statusCode, res) => {
     user: {
       id: user._id,
       name: user.name,
+      username: user.username,
       email: user.email,
       mobile: user.mobile,
       role: user.role,

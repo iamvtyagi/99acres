@@ -1,57 +1,69 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import { login, reset } from '../../redux/slices/authSlice';
-import { FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import { login, reset } from "../../redux/slices/authSlice";
+import { FaSignInAlt, FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { user, isLoading, isSuccess, isError, message } = useSelector(
     (state) => state.auth
   );
-  
+
   // Validation schema
   const validationSchema = Yup.object({
-    email: Yup.string()
-      .email('Invalid email address')
-      .required('Email is required'),
+    email: Yup.string().required("Email or username is required"),
     password: Yup.string()
-      .required('Password is required')
-      .min(6, 'Password must be at least 6 characters'),
+      .required("Password is required")
+      .min(6, "Password must be at least 6 characters"),
   });
-  
+
   // Initial form values
   const initialValues = {
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   };
-  
+
   useEffect(() => {
     // Redirect if logged in
     if (isSuccess || user) {
-      navigate('/');
+      console.log("Login successful, redirecting to home page");
+      navigate("/");
     }
-    
+
     // Reset state on component unmount
     return () => {
       dispatch(reset());
     };
   }, [user, isSuccess, navigate, dispatch]);
-  
+
+  // Log error message when login fails
+  useEffect(() => {
+    if (isError) {
+      console.error("Login error:", message);
+    }
+  }, [isError, message]);
+
   const handleSubmit = (values) => {
+    console.log("Login form submitted with values:", values);
+    // Make sure we have the required fields
+    if (!values.email || !values.password) {
+      console.error("Missing required fields");
+      return;
+    }
     dispatch(login(values));
   };
-  
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -59,7 +71,7 @@ const Login = () => {
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
+          Or{" "}
           <Link
             to="/register"
             className="font-medium text-blue-600 hover:text-blue-500"
@@ -68,7 +80,7 @@ const Login = () => {
           </Link>
         </p>
       </div>
-      
+
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {isError && (
@@ -76,7 +88,7 @@ const Login = () => {
               <p>{message}</p>
             </div>
           )}
-          
+
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
@@ -89,14 +101,14 @@ const Login = () => {
                     htmlFor="email"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Email address
+                    Email or Username
                   </label>
                   <div className="mt-1">
                     <Field
                       id="email"
                       name="email"
-                      type="email"
-                      autoComplete="email"
+                      type="text"
+                      autoComplete="username email"
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                     <ErrorMessage
@@ -106,7 +118,7 @@ const Login = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label
                     htmlFor="password"
@@ -118,7 +130,7 @@ const Login = () => {
                     <Field
                       id="password"
                       name="password"
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -140,7 +152,7 @@ const Login = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
@@ -156,7 +168,7 @@ const Login = () => {
                       Remember me
                     </label>
                   </div>
-                  
+
                   <div className="text-sm">
                     <Link
                       to="/forgot-password"
@@ -166,7 +178,7 @@ const Login = () => {
                     </Link>
                   </div>
                 </div>
-                
+
                 <div>
                   <button
                     type="submit"
@@ -203,7 +215,7 @@ const Login = () => {
               </Form>
             )}
           </Formik>
-          
+
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -215,7 +227,7 @@ const Login = () => {
                 </span>
               </div>
             </div>
-            
+
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div>
                 <a
@@ -229,13 +241,11 @@ const Login = () => {
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path
-                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                    />
+                    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
                   </svg>
                 </a>
               </div>
-              
+
               <div>
                 <a
                   href="#"

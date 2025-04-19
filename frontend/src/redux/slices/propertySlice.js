@@ -65,14 +65,12 @@ export const createProperty = createAsyncThunk(
   async (propertyData, thunkAPI) => {
     try {
       const token = thunkAPI.getState().auth.user.token;
-
-      const config = {
+      const response = await axios.post(API_URL, propertyData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      };
+      });
 
-      const response = await axios.post(API_URL, propertyData, config);
       return response.data;
     } catch (error) {
       const message =
@@ -220,6 +218,7 @@ export const propertySlice = createSlice({
       .addCase(getProperties.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
+        console.log("getProperties.fulfilled payload:", action.payload);
         state.properties = action.payload.data;
         state.pagination = action.payload.pagination;
         state.totalCount = action.payload.count;

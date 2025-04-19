@@ -1,78 +1,108 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import { register, reset } from '../../redux/slices/authSlice';
-import { FaUserPlus, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import { register, reset } from "../../redux/slices/authSlice";
+import { FaUserPlus, FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { user, isLoading, isSuccess, isError, message } = useSelector(
     (state) => state.auth
   );
-  
+
   // Validation schema
   const validationSchema = Yup.object({
     name: Yup.string()
-      .required('Name is required')
-      .max(50, 'Name cannot be more than 50 characters'),
+      .required("Name is required")
+      .max(50, "Name cannot be more than 50 characters"),
+    username: Yup.string()
+      .required("Username is required")
+      .max(30, "Username cannot be more than 30 characters")
+      .matches(
+        /^[a-zA-Z0-9_]+$/,
+        "Username can only contain letters, numbers, and underscores"
+      ),
     email: Yup.string()
-      .email('Invalid email address')
-      .required('Email is required'),
+      .email("Invalid email address")
+      .required("Email is required"),
     mobile: Yup.string()
-      .required('Mobile number is required')
-      .matches(/^[0-9]{10}$/, 'Mobile number must be 10 digits'),
+      .required("Mobile number is required")
+      .matches(/^[0-9]{10}$/, "Mobile number must be 10 digits"),
     password: Yup.string()
-      .required('Password is required')
-      .min(6, 'Password must be at least 6 characters'),
+      .required("Password is required")
+      .min(6, "Password must be at least 6 characters"),
     confirmPassword: Yup.string()
-      .oneOf([Yup.ref('password'), null], 'Passwords must match')
-      .required('Confirm Password is required'),
-    role: Yup.string().required('Role is required'),
+      .oneOf([Yup.ref("password"), null], "Passwords must match")
+      .required("Confirm Password is required"),
+    role: Yup.string().required("Role is required"),
   });
-  
+
   // Initial form values
   const initialValues = {
-    name: '',
-    email: '',
-    mobile: '',
-    password: '',
-    confirmPassword: '',
-    role: 'buyer',
+    name: "",
+    username: "",
+    email: "",
+    mobile: "",
+    password: "",
+    confirmPassword: "",
+    role: "buyer",
   };
-  
+
   useEffect(() => {
     // Redirect if registration successful
     if (isSuccess) {
-      navigate('/login');
+      navigate("/login");
     }
-    
+
     // Reset state on component unmount
     return () => {
       dispatch(reset());
     };
   }, [isSuccess, navigate, dispatch]);
-  
+
   const handleSubmit = (values) => {
+    console.log("Register form submitted with values:", {
+      ...values,
+      password: "[REDACTED]",
+      confirmPassword: "[REDACTED]",
+    });
+
+    // Validate required fields
+    const requiredFields = [
+      "name",
+      "username",
+      "email",
+      "mobile",
+      "password",
+      "confirmPassword",
+    ];
+    for (const field of requiredFields) {
+      if (!values[field]) {
+        console.error(`${field} is required`);
+        return;
+      }
+    }
+
     // Remove confirmPassword before sending to API
     const { confirmPassword, ...userData } = values;
     dispatch(register(userData));
   };
-  
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-  
+
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -80,7 +110,7 @@ const Register = () => {
           Create a new account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
+          Or{" "}
           <Link
             to="/login"
             className="font-medium text-blue-600 hover:text-blue-500"
@@ -89,7 +119,7 @@ const Register = () => {
           </Link>
         </p>
       </div>
-      
+
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {isError && (
@@ -97,13 +127,16 @@ const Register = () => {
               <p>{message}</p>
             </div>
           )}
-          
+
           {isSuccess && (
             <div className="mb-4 bg-green-50 border-l-4 border-green-500 p-4 text-green-700">
-              <p>Registration successful! Please check your email to verify your account.</p>
+              <p>
+                Registration successful! Please check your email to verify your
+                account.
+              </p>
             </div>
           )}
-          
+
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
@@ -133,7 +166,30 @@ const Register = () => {
                     />
                   </div>
                 </div>
-                
+
+                <div>
+                  <label
+                    htmlFor="username"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Username
+                  </label>
+                  <div className="mt-1">
+                    <Field
+                      id="username"
+                      name="username"
+                      type="text"
+                      autoComplete="username"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    <ErrorMessage
+                      name="username"
+                      component="p"
+                      className="mt-2 text-sm text-red-600"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label
                     htmlFor="email"
@@ -156,7 +212,7 @@ const Register = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label
                     htmlFor="mobile"
@@ -179,7 +235,7 @@ const Register = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label
                     htmlFor="password"
@@ -191,7 +247,7 @@ const Register = () => {
                     <Field
                       id="password"
                       name="password"
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       autoComplete="new-password"
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -213,7 +269,7 @@ const Register = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label
                     htmlFor="confirmPassword"
@@ -225,7 +281,7 @@ const Register = () => {
                     <Field
                       id="confirmPassword"
                       name="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
+                      type={showConfirmPassword ? "text" : "password"}
                       autoComplete="new-password"
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -247,7 +303,7 @@ const Register = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label
                     htmlFor="role"
@@ -273,7 +329,7 @@ const Register = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center">
                   <input
                     id="terms"
@@ -286,14 +342,14 @@ const Register = () => {
                     htmlFor="terms"
                     className="ml-2 block text-sm text-gray-900"
                   >
-                    I agree to the{' '}
+                    I agree to the{" "}
                     <Link
                       to="/terms"
                       className="font-medium text-blue-600 hover:text-blue-500"
                     >
                       Terms of Service
-                    </Link>{' '}
-                    and{' '}
+                    </Link>{" "}
+                    and{" "}
                     <Link
                       to="/privacy"
                       className="font-medium text-blue-600 hover:text-blue-500"
@@ -302,7 +358,7 @@ const Register = () => {
                     </Link>
                   </label>
                 </div>
-                
+
                 <div>
                   <button
                     type="submit"
